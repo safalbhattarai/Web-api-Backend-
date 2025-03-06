@@ -317,3 +317,104 @@ const placeOrder = async (req, res) => {
             },
             quantity: item.quantity
           }))
+
+
+
+
+          line_items.push({
+            price_data:{
+                currency:"inr",
+                product_data:{
+                    name:"Delivery Charge"
+                },
+                unit_amount: 5*80*100
+            },
+            quantity:1
+        })
+        
+          const session = await stripe.checkout.sessions.create({
+            success_url: `http://localhost:5173/verify?success=true&orderId=${newOrder._id}`,
+            cancel_url: `http://localhost:5173/verify?success=false&orderId=${newOrder._id}`,
+            line_items: line_items,
+            mode: 'payment',
+          });
+      
+          res.json({success:true,session_url:session.url});
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error" })
+    }
+}
+
+// Listing Order for Admin panel
+const listOrders = async (req, res) => {
+    try {
+        const orders = await orderModel.find({});
+        res.json({ success: true, data: orders })
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error" })
+    }
+}
+
+// User Orders for Frontend
+const userOrders = async (req, res) => {
+    try {
+        const orders = await orderModel.find({ userId: req.body.userId });
+        res.json({ success: true, data: orders })
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error" })
+    }
+}
+
+const updateStatus = async (req, res) => {
+    console.log(req.body);
+    try {
+        await orderModel.findByIdAndUpdate(req.body.orderId, { status: req.body.status });
+        res.json({ success: true, message: "Status Updated" })
+    } catch (error) {
+        res.json({ success: false, message: "Error" })
+    }
+
+}
+
+const verifyOrder = async (req, res) => {
+    const {orderId , success} = req.body;
+    try {
+        if (success==="true") {
+            await orderModel.findByIdAndUpdate(orderId, { payment: true });
+            res.json({ success: true, message: "Paid" })
+        }
+        else{
+            await orderModel.findByIdAndDelete(orderId)
+            res.json({ success: false, message: "Not Paid" })
+        }
+    } catch (error) {
+        res.json({ success: false, message: "Not  Verified" })
+    }
+
+}
+
+export { placeOrder, listOrders, userOrders, updateStatus ,verifyOrder }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
